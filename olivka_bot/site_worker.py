@@ -6,12 +6,28 @@ from selenium.webdriver.support.ui import Select
 from time import sleep
 import datetime
 from bd import DataBase
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
 
 class BrowserWorker:
     def __init__(self) -> None:
-        self.browser = webdriver.Chrome()
-        self.browser.get("https://corp.olivkafood.ru/?day_of_week=4")
+        ua = dict(DesiredCapabilities.CHROME)
+        options = webdriver.ChromeOptions()
+        options.add_argument('headless')
+        options.add_argument('window-size=1920x935')
+        options.add_argument('no-sandbox')
+        options.add_argument('disable-dev-shm-usage')
+        week_day = datetime.datetime.today().weekday()
+        current_hour = datetime.datetime.today().hour
+        self.browser = webdriver.Chrome(chrome_options=options)
+        week_day +=1
+        if week_day>7:
+            week_day = 1
+        if current_hour > 12:
+            self.browser.get(f'https://corp.olivkafood.ru/?day_of_week={week_day+1}')
+        else:
+            self.browser.get(f'https://corp.olivkafood.ru/?day_of_week={week_day}')
+        
 
     def move_and_click(self, field: str) -> None:
         ActionChains(self.browser).move_to_element(field).perform()
@@ -59,6 +75,14 @@ class BrowserWorker:
                     products.remove(item_name.lower())
         return products
 
+    def get_default(self):
+        all_table = self.browser.find_element_by_class_name("corp-table")
+        categories = all_table.find_elements_by_class_name("corp-category")
+        default_cat = categories[0].find_elements_by_class_name("corp-item-wrap")[1]
+        items = default_cat.text.split("\n")[2]
+        items = items.replace(", ","\n")
+        return items
+
     def set_final_fields(self, name, phone, email):
         order_form = self.browser.find_element_by_class_name("basket-form")
         name_phone_instruments = order_form.find_elements_by_class_name("col-xs-6")
@@ -104,6 +128,8 @@ class BrowserWorker:
         addres[0].send_keys("Планировочная")
         addres[1].send_keys("18/1")
         addres[2].send_keys("246")
+        btn = order_form.find_element_by_name("yt0")
+        self.move_and_click(btn)
 
 
 # all_table = browser.find_element_by_class_name("corp-table")

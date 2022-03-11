@@ -4,7 +4,7 @@ import datetime
 
 class DataBase:
     def __init__(self) -> None:
-        self.connection = sqlite3.connect("motiv_olivka.db", check_same_thread=False)
+        self.connection = sqlite3.connect("/home/a-mazko/olivka/motiv_olivka.db", check_same_thread=False)
         self.cursor = self.connection.cursor()
 
     def execute(self, query, task=""):
@@ -56,12 +56,16 @@ class DataBase:
         today_day = today.day
         today_year = today.year
         today_month = today.month
-        today_hour = 20
+        today_hour = today.hour
+        if today_hour > 12:
+            temp = 1
+        else:
+            temp = 0
         today_threshold = datetime.datetime(
-            today_year, today_month, today_day, today_hour
+            today_year, today_month, today_day+temp, 12
         )
         yesterday_threshold = datetime.datetime(
-            today_year, today_month, today_day - 1, today_hour
+            today_year, today_month, today_day - 1+temp, 12
         )
         task = (
             yesterday_threshold,

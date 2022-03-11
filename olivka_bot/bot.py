@@ -33,7 +33,10 @@ def start_message(message):
             "/imDuty - стать дежурным\n"
             "/order - Оформить доставку (только для дежурного)\n"
             "/who - Кто дежурный\n"
-            "/see - посмотреть заказы ",
+            "/see - посмотреть заказы\n"
+        "/default - узнать состав дефолта\n"
+        "/remind - напомнить про заказы\n"
+        "/go - Оливка приехала",
             reply_markup=menu,
         )
 
@@ -44,12 +47,42 @@ def actions_menu():
     button_3 = telebot.types.KeyboardButton("/order")
     button_4 = telebot.types.KeyboardButton("/who")
     button_5 = telebot.types.KeyboardButton("/see")
+    button_6 = telebot.types.KeyboardButton("/default")
+    button_7 = telebot.types.KeyboardButton("/remind")
+    button_8 = telebot.types.KeyboardButton("/go")
     actions_keyboard = telebot.types.ReplyKeyboardMarkup(
         one_time_keyboard=True, resize_keyboard=True
     )
-    actions_keyboard.add(button_1, button_2, button_3, button_4, button_5)
+    actions_keyboard.add(button_1, button_2, button_3, button_4, button_5,button_6,button_7,button_8)
     return actions_keyboard
 
+@bot.message_handler(commands=["remind"])
+def remind(message):
+    user_id = message.from_user.id
+    logger.info("Попытался напомнить всем  ID %d", user_id)
+    if user_id != orderer.id:
+        bot.send_message(message.from_user.id, "Ты не дежурный")
+        logger.info("но он не дежурный ")
+    else:
+        users_id = bd.execute("SELECT User_id From Duty")
+        users_id = bd.cursor.fetchall()
+        
+        for user in users_id:
+            bot.send_message(user[0], "Не забудь сделать заказ")
+
+@bot.message_handler(commands=["go"])
+def remind(message):
+    user_id = message.from_user.id
+    logger.info("Попытался напомнить всем  ID %d", user_id)
+    if user_id != orderer.id:
+        bot.send_message(message.from_user.id, "Ты не дежурный")
+        logger.info("но он не дежурный ")
+    else:
+        users_id = bd.execute("SELECT User_id From Duty")
+        users_id = bd.cursor.fetchall()
+        
+        for user in users_id:
+            bot.send_message(user[0], " Оливка приехала !!!")
 
 @bot.message_handler(commands=["order"])
 def order(message):
@@ -69,7 +102,7 @@ def order(message):
             response = bw.set_products(product, i)
             if len(response):
                 bot.send_message(
-                    message.from_user.id, f"Не нашел продукты, заказанные {names[i]}"
+                    message.from_user.id, f"Не нашел продукты, заказанные {names[i]}\n{response}"
                 )
                 for r in response:
                     bot.send_message(message.from_user.id, r)
@@ -89,9 +122,26 @@ def order(message):
         "/imDuty - стать дежурным\n"
         "/order - Оформить доставку (только для дежурного)\n"
         "/who - Кто дежурный\n"
-        "/see - посмотреть заказы ",
+        "/see - посмотреть заказы\n"
+        "/default - узнать состав дефолта\n"
+        "/remind - напомнить про заказы\n"
+        "/go - Оливка приехала",
         reply_markup=menu,
     )
+
+@bot.message_handler(commands=["default"])
+def default(message):
+    logger.info("ЗАПРОСИЛИ ДЕФОЛТ")
+    bot.send_message(message.from_user.id,"Пожалуйста, подождите")
+    try:
+        bw = BrowserWorker()
+        items = bw.get_default()
+        logger.info("Состав дефолта: %s", items)
+        bot.send_message(
+            message.from_user.id, items)
+    except Exception as e:
+        logger.info("%s",e)
+        logger.info("%s",type(e))
 
 
 @bot.message_handler(commands=["imDuty"])
@@ -113,7 +163,10 @@ def im_duty(message):
         "/imDuty - стать дежурным\n"
         "/order - Оформить доставку (только для дежурного)\n"
         "/who - Кто дежурный\n"
-        "/see - посмотреть заказы ",
+        "/see - посмотреть заказы\n"
+        "/default - узнать состав дефолта\n"
+        "/remind - напомнить про заказы\n"
+        "/go - Оливка приехала",
         reply_markup=menu,
     )
 
@@ -132,7 +185,10 @@ def who_duty(message):
         "/imDuty - стать дежурным\n"
         "/order - Оформить доставку (только для дежурного)\n"
         "/who - Кто дежурный\n"
-        "/see - посмотреть заказы ",
+        "/see - посмотреть заказы\n"
+        "/default - узнать состав дефолта\n"
+        "/remind - напомнить про заказы\n"
+        "/go - Оливка приехала",
         reply_markup=menu,
     )
 
@@ -158,7 +214,6 @@ def see(message):
         bot.send_message(message.from_user.id, "Заказов еще не было")
 
 
-@bot.message_handler(content_types=["text"])
 def parse_order(message):
     user_id = message.from_user.id
     order_text = message.text
@@ -178,31 +233,44 @@ def parse_order(message):
         "/imDuty - стать дежурным\n"
         "/order - Оформить доставку (только для дежурного)\n"
         "/who - Кто дежурный\n"
-        "/see - посмотреть заказы ",
+        "/see - посмотреть заказы\n"
+        "/default - узнать состав дефолта\n"
+        "/remind - напомнить про заказы\n"
+        "/go - Оливка приехала",
         reply_markup=menu,
     )
 
 
 def register(message):
     text = message.text.split()
-    name = text[0]
-    phone = text[1]
-    email = text[2]
-    id = message.from_user.id
-    user = Duty(name=name, phone=phone, email=email, id=id)
-    bd.add_duty((id, name, phone, email))
-    bot.send_message(message.from_user.id, f"Успешно зарегестрированы")
-    menu = actions_menu()
-    bot.send_message(
-        message.from_user.id,
-        "Список команд:\n"
-        "/add - Ввести заказ\n"
-        "/imDuty - стать дежурным\n"
-        "/order - Оформить доставку (только для дежурного)\n"
-        "/who - Кто дежурный\n"
-        "/see - посмотреть заказы ",
-        reply_markup=menu,
-    )
+    if len(text) != 3 or len(text[1])!= 10 or not text[1].isdigit() or not "@" in text[2]:
+        bot.send_message(
+            message.from_user.id,
+            "ОШИБКА!!!\nВведите через пробел ИМЯ, НОМЕР ТЕЛЕФОНА(начиная с 9), EMAIL",
+        )
+        bot.register_next_step_handler(message, register)
+    else:
+        name = text[0]
+        phone = text[1]
+        email = text[2]
+        id = message.from_user.id
+        user = Duty(name=name, phone=phone, email=email, id=id)
+        bd.add_duty((id, name, phone, email))
+        bot.send_message(message.from_user.id, f"Успешно зарегестрированы")
+        menu = actions_menu()
+        bot.send_message(
+            message.from_user.id,
+            "Список команд:\n"
+            "/add - Ввести заказ\n"
+            "/imDuty - стать дежурным\n"
+            "/order - Оформить доставку (только для дежурного)\n"
+            "/who - Кто дежурный\n"
+            "/see - посмотреть заказы\n"
+            "/default - узнать состав дефолта\n"
+        "/remind - напомнить про заказы\n"
+        "/go - Оливка приехала",
+            reply_markup=menu,
+        )
 
 
 def get_orders_from_bd(self):
@@ -215,4 +283,8 @@ def get_user_text(message):
 
 
 if __name__ == "__main__":
-    bot.polling(none_stop=True)
+    try:
+        bot.polling(none_stop=True)
+    except Exception as e:
+        logger.info("%s",e)
+        logger.info("%s",type(e))
